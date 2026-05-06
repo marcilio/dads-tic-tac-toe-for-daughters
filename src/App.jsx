@@ -68,7 +68,7 @@ function useAudio() {
   }
 }
 
-function PlayerSetup({ label, player, onChange }) {
+function PlayerSetup({ label, player, takenAvatar, onChange }) {
   const error = player.name.length > 0 && !NAME_RE.test(player.name)
 
   function handleName(e) {
@@ -93,8 +93,10 @@ function PlayerSetup({ label, player, onChange }) {
         {AVATARS.map(a => (
           <button
             key={a}
-            className={`avatar-btn ${player.avatar === a ? 'avatar-selected' : ''}`}
-            onClick={() => onChange({ ...player, avatar: a })}
+            className={`avatar-btn ${player.avatar === a ? 'avatar-selected' : ''} ${a === takenAvatar ? 'avatar-taken' : ''}`}
+            onClick={() => a !== takenAvatar && onChange({ ...player, avatar: a })}
+            disabled={a === takenAvatar}
+            title={a === takenAvatar ? 'Taken by other player' : undefined}
           >
             {a}
           </button>
@@ -117,9 +119,9 @@ function Setup({ onStart }) {
       <h1>Tic-Tac-Toe</h1>
       <p className="setup-subtitle">Set up your players</p>
       <div className="setup-players">
-        <PlayerSetup label="Player X" player={p1} onChange={setP1} />
+        <PlayerSetup label="Player 1" player={p1} takenAvatar={p2.avatar} onChange={setP1} />
         <div className="setup-divider">VS</div>
-        <PlayerSetup label="Player O" player={p2} onChange={setP2} />
+        <PlayerSetup label="Player 2" player={p2} takenAvatar={p1.avatar} onChange={setP2} />
       </div>
       <button
         className="restart-btn"
@@ -144,12 +146,12 @@ function Board({ squares, onPlay, xIsNext, players, audio }) {
   const { winner, line } = calculateWinner(squares)
   const isDraw = !winner && squares.every(Boolean)
   const current = players[xIsNext ? 0 : 1]
-  const winnerPlayer = winner ? players[winner === 'X' ? 0 : 1] : null
+  const winnerPlayer = winner ? players.find(p => p.avatar === winner) : null
 
   function handleClick(i) {
     if (squares[i] || winner) return
     const next = squares.slice()
-    next[i] = xIsNext ? 'X' : 'O'
+    next[i] = current.avatar
     const { winner: nextWinner } = calculateWinner(next)
     const nextDraw = !nextWinner && next.every(Boolean)
     if (nextWinner) audio.playWin()
@@ -221,10 +223,10 @@ export default function Game() {
       <h1>Tic-Tac-Toe</h1>
       <div className="player-bar">
         <span className={`player-tag ${xIsNext ? 'player-tag-active' : ''}`}>
-          {players[0].avatar} {players[0].name} <em>X</em>
+          {players[0].avatar} {players[0].name}
         </span>
         <span className={`player-tag ${!xIsNext ? 'player-tag-active' : ''}`}>
-          {players[1].avatar} {players[1].name} <em>O</em>
+          {players[1].avatar} {players[1].name}
         </span>
       </div>
       <div className="game-board">

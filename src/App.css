@@ -128,6 +128,11 @@ h1 {
   background: #1a1a2e;
 }
 
+.avatar-taken {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
 /* ── Game screen ── */
 
 .game {
@@ -178,7 +183,7 @@ h1 {
 .square {
   width: 90px;
   height: 90px;
-  font-size: 2.5rem;
+  font-size: 2.8rem;
   font-weight: bold;
   background: #16213e;
   color: #eee;
