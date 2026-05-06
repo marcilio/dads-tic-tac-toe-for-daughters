@@ -153,9 +153,18 @@ function PlayerSetup({ label, player, takenAvatar, onChange }) {
   )
 }
 
+function GameTitle() {
+  return (
+    <div className="game-title">
+      <h1>Tic-Tac-Toe</h1>
+      <p className="dedication">From Marcilio to his lovely daughters Ana and Marina</p>
+    </div>
+  )
+}
+
 function Setup({ onStart }) {
-  const [p1, setP1] = useState({ name: '', avatar: '🐶' })
-  const [p2, setP2] = useState({ name: '', avatar: '🐱' })
+  const [p1, setP1] = useState({ name: 'Ana', avatar: '🐶' })
+  const [p2, setP2] = useState({ name: 'Marina', avatar: '🐱' })
 
   const p1Valid = p1.name.trim().length > 0 && NAME_RE.test(p1.name)
   const p2Valid = p2.name.trim().length > 0 && NAME_RE.test(p2.name)
@@ -163,7 +172,7 @@ function Setup({ onStart }) {
 
   return (
     <div className="setup">
-      <h1>Tic-Tac-Toe</h1>
+      <GameTitle />
       <p className="setup-subtitle">Set up your players</p>
       <div className="setup-players">
         <PlayerSetup label="Player 1" player={p1} takenAvatar={p2.avatar} onChange={setP1} />
@@ -274,7 +283,7 @@ export default function Game() {
 
   return (
     <div className="game">
-      <h1>Tic-Tac-Toe</h1>
+      <GameTitle />
       <div className="scoreboard">
         {players.map((p, i) => (
           <div key={i} className={`score-card ${xIsNext === (i === 0) ? 'score-card-active' : ''}`}>

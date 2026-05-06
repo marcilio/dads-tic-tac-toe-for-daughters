@@ -14,10 +14,38 @@ body {
   align-items: center;
 }
 
+@keyframes shimmer {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
 h1 {
-  font-size: 2rem;
-  letter-spacing: 2px;
-  color: #e94560;
+  font-size: 2.8rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, #e94560, #ff6b6b, #feca57, #ff9f43, #e94560);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s ease infinite;
+  filter: drop-shadow(0 0 12px rgba(233, 69, 96, 0.6));
+}
+
+.game-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.dedication {
+  font-size: 0.7rem;
+  color: #666;
+  font-style: italic;
+  letter-spacing: 0.5px;
 }
 
 /* ── Setup screen ── */
