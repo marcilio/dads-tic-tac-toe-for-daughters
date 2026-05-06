@@ -1,16 +1,36 @@
-# React + Vite
+# Tic-Tac-Toe
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A fun, polished Tic-Tac-Toe web app built with React + Vite.
 
-Currently, two official plugins are available:
+Made with love by Marcilio for his daughters **Ana** and **Marina**.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+🎮 **Play it live:** https://tic-tac-toe-two-iota-73.vercel.app
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Features
 
-## Expanding the ESLint configuration
+- **Player setup** — enter your name (up to 16 chars) and pick an emoji avatar
+- **Avatar on the board** — pieces show each player's avatar instead of X/O
+- **vs Computer** — play against an AI with Easy (random) or Hard (unbeatable minimax) difficulty
+- **Scoreboard** — tracks wins across rounds; turns alternate who starts each game
+- **Tournament mode** — Best of 3 or Best of 5 series with a champion screen and confetti
+- **Avatar reactions** — winner bounces, loser shakes, draw wiggles
+- **Audio** — distinct sounds for each player's move, win fanfare, draw tone, and ambient background music
+- **Splash screen** — animated intro with names swapping, intro jingle, and a 5-second countdown
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Running Locally
+
+```bash
+npm install
+npm run dev
+```
+
+Open http://localhost:5173.
+
+## Tech Stack
+
+- [React](https://react.dev/)
+- [Vite](https://vite.dev/)
+- Web Audio API (all sounds generated programmatically — no audio files)
+- Deployed on [Vercel](https://vercel.com/)
