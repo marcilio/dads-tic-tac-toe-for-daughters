@@ -189,6 +189,7 @@ function Board({ squares, onPlay, xIsNext, players, audio }) {
 
 export default function Game() {
   const [players, setPlayers] = useState(null)
+  const [scores, setScores] = useState([0, 0])
   const [history, setHistory] = useState([Array(9).fill(null)])
   const [currentMove, setCurrentMove] = useState(0)
   const current = history[currentMove]
@@ -197,9 +198,15 @@ export default function Game() {
 
   function handleStart(p1, p2) {
     setPlayers([p1, p2])
+    setScores([0, 0])
   }
 
   function handlePlay(next) {
+    const { winner } = calculateWinner(next)
+    if (winner) {
+      const idx = players.findIndex(p => p.avatar === winner)
+      if (idx !== -1) setScores(s => s.map((v, i) => i === idx ? v + 1 : v))
+    }
     const nextHistory = history.slice(0, currentMove + 1).concat([next])
     setHistory(nextHistory)
     setCurrentMove(nextHistory.length - 1)
@@ -212,6 +219,7 @@ export default function Game() {
 
   function changePlayers() {
     setPlayers(null)
+    setScores([0, 0])
     setHistory([Array(9).fill(null)])
     setCurrentMove(0)
   }
@@ -221,20 +229,21 @@ export default function Game() {
   return (
     <div className="game">
       <h1>Tic-Tac-Toe</h1>
-      <div className="player-bar">
-        <span className={`player-tag ${xIsNext ? 'player-tag-active' : ''}`}>
-          {players[0].avatar} {players[0].name}
-        </span>
-        <span className={`player-tag ${!xIsNext ? 'player-tag-active' : ''}`}>
-          {players[1].avatar} {players[1].name}
-        </span>
+      <div className="scoreboard">
+        {players.map((p, i) => (
+          <div key={i} className={`score-card ${xIsNext === (i === 0) ? 'score-card-active' : ''}`}>
+            <span className="score-avatar">{p.avatar}</span>
+            <span className="score-name">{p.name}</span>
+            <span className="score-value">{scores[i]}</span>
+          </div>
+        ))}
       </div>
       <div className="game-board">
         <Board squares={current} onPlay={handlePlay} xIsNext={xIsNext} players={players} audio={audio} />
       </div>
       <div className="game-info">
         <div className="game-buttons">
-          <button className="restart-btn" onClick={restart}>Restart</button>
+          <button className="restart-btn" onClick={restart}>Next Round</button>
           <button className="secondary-btn" onClick={changePlayers}>Change Players</button>
         </div>
         <ol>
