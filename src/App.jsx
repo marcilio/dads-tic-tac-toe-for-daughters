@@ -630,6 +630,8 @@ export default function Game() {
 
   if (splash) return <Splash onDone={() => setSplash(false)} playIntroMusic={audio.playIntroMusic} />
 
+  const copyright = <p className="game-copyright">© {new Date().getFullYear()} Made with ♥ by Marcilio for Ana &amp; Marina</p>
+
   function handleStart(p1, p2, gameMode, gameDifficulty, gameTournament) {
     setPlayers([p1, p2])
     setMode(gameMode)
@@ -678,28 +680,32 @@ export default function Game() {
     setSeriesWinner(null)
   }
 
-  if (!players) return <Setup onStart={handleStart} />
+  if (!players) return <><Setup onStart={handleStart} />{copyright}</>
 
   if (seriesWinner !== null) return (
-    <TournamentWinner
-      winner={players[seriesWinner]}
-      players={players}
-      scores={scores}
-      onPlayAgain={() => {
-        setScores([0, 0])
-        setSquares(Array(9).fill(null))
-        setXIsNext(true)
-        setRoundStarter(true)
-        setRoundResult(null)
-        setSeriesWinner(null)
-      }}
-      onChangePlayers={changePlayers}
-    />
+    <>
+      <TournamentWinner
+        winner={players[seriesWinner]}
+        players={players}
+        scores={scores}
+        onPlayAgain={() => {
+          setScores([0, 0])
+          setSquares(Array(9).fill(null))
+          setXIsNext(true)
+          setRoundStarter(true)
+          setRoundResult(null)
+          setSeriesWinner(null)
+        }}
+        onChangePlayers={changePlayers}
+      />
+      {copyright}
+    </>
   )
 
   const tournamentLabel = tournament ? `Best of ${tournament === 2 ? 3 : 5} — first to ${tournament}` : null
 
   return (
+    <>
     <div className="game">
       <GameTitle />
       {tournamentLabel && <p className="tournament-label-game">{tournamentLabel}</p>}
@@ -723,8 +729,9 @@ export default function Game() {
         <button className="restart-btn" onClick={restart}>Next Round</button>
         <button className="secondary-btn" onClick={changePlayers}>Change Players</button>
       </div>
-      <p className="game-copyright">© {new Date().getFullYear()} Made with ♥ by Marcilio for Ana &amp; Marina</p>
     </div>
+    {copyright}
+    </>
   )
 }
 
