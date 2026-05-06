@@ -318,6 +318,58 @@ function Board({ squares, onPlay, xIsNext, players, audio, cpuTurn }) {
   )
 }
 
+function SwapNames({ active }) {
+  const anaRef = useRef(null)
+  const marinaRef = useRef(null)
+  const [offset, setOffset] = useState(0)
+  const [swapped, setSwapped] = useState(false)
+
+  useEffect(() => {
+    if (anaRef.current && marinaRef.current) {
+      const a = anaRef.current.getBoundingClientRect()
+      const m = marinaRef.current.getBoundingClientRect()
+      setOffset(m.left - a.left)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!active) { setSwapped(false); return }
+    const id = setInterval(() => setSwapped(s => !s), 2000)
+    return () => clearInterval(id)
+  }, [active])
+
+  const transition = 'transform 0.9s cubic-bezier(0.68, -0.4, 0.27, 1.4)'
+
+  return (
+    <div className="names-swap-area">
+      <div className="names-swap-row">
+        <span
+          ref={anaRef}
+          className="splash-names"
+          style={{
+            display: 'inline-block',
+            transform: `translateX(${swapped ? offset : 0}px)`,
+            transition,
+            position: 'relative',
+            zIndex: swapped ? 2 : 1,
+          }}
+        >Ana</span>
+        <span
+          ref={marinaRef}
+          className="splash-names"
+          style={{
+            display: 'inline-block',
+            transform: `translateX(${swapped ? -offset : 0}px)`,
+            transition,
+            position: 'relative',
+            zIndex: swapped ? 1 : 2,
+          }}
+        >Marina</span>
+      </div>
+    </div>
+  )
+}
+
 function Splash({ onDone, playIntroMusic }) {
   const [phase, setPhase] = useState('idle')
 
@@ -337,10 +389,8 @@ function Splash({ onDone, playIntroMusic }) {
   return (
     <div className={`splash ${phase !== 'idle' ? `splash-${phase}` : ''}`} onClick={handleTap}>
       <h1 className="splash-title">Tic-Tac-Toe</h1>
-      <p className="splash-dedication">
-        From Marcilio to his lovely daughters{' '}
-        <span className="splash-names">Ana</span> and <span className="splash-names">Marina</span>
-      </p>
+      <p className="splash-dedication">From Marcilio to his lovely daughters</p>
+      <SwapNames active={phase === 'idle'} />
       {phase === 'idle' && <p className="splash-tap">Click or press any key to start</p>}
     </div>
   )
