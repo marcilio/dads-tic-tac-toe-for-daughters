@@ -245,7 +245,7 @@ function PlayerSetup({ label, player, takenAvatar, onChange }) {
       />
       {error && <div className="name-error">Letters, numbers, spaces, ' _ - only</div>}
       <div className="avatar-grid">
-        {AVATARS.map(a => (
+        {AVATARS.filter(a => a !== '🤖').map(a => (
           <button
             key={a}
             className={`avatar-btn ${player.avatar === a ? 'avatar-selected' : ''} ${a === takenAvatar ? 'avatar-taken' : ''}`}
