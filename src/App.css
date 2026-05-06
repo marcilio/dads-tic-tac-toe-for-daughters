@@ -152,6 +152,17 @@ h1 {
   letter-spacing: 0.5px;
 }
 
+.dedication-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.2s;
+}
+
+.dedication-link:hover {
+  color: #999;
+}
+
 /* ── Setup screen ── */
 
 .mode-toggle {

@@ -265,7 +265,7 @@ function GameTitle() {
   return (
     <div className="game-title">
       <h1>Tic-Tac-Toe</h1>
-      <p className="dedication">From Marcilio to his lovely daughters Ana and Marina</p>
+      <p className="dedication">From <a href="https://www.linkedin.com/in/marcilio/" target="_blank" rel="noreferrer" className="dedication-link">Marcilio</a> to his lovely daughters Ana and Marina</p>
     </div>
   )
 }
@@ -574,7 +574,7 @@ function Splash({ onDone, playIntroMusic }) {
   return (
     <div className={`splash ${phase !== 'idle' ? `splash-${phase}` : ''}`} onClick={handleTap}>
       <h1 className="splash-title">Tic-Tac-Toe</h1>
-      <p className="splash-dedication">© {new Date().getFullYear()} Made with ♥ by <a href="https://www.linkedin.com/in/marcilio/" target="_blank" rel="noreferrer" className="copyright-link">Marcilio</a> for Ana &amp; Marina</p>
+      <p className="splash-dedication">From Marcilio to his lovely daughters</p>
       <SwapNames active={phase === 'idle'} />
       {phase === 'idle' && <p className="splash-tap">Click or press any key to start</p>}
     </div>
