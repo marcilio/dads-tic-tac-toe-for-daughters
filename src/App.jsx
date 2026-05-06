@@ -665,14 +665,17 @@ export default function Game() {
   useEffect(() => {
     if (!timedMode || !players || roundResult || cpuTurn) { setCountdown(null); return }
     setCountdown(5)
-    const id = setInterval(() => {
-      setCountdown(c => {
-        if (c <= 1) { clearInterval(id); autoMoveRef.current(); return null }
-        return c - 1
-      })
-    }, 1000)
+    const id = setInterval(() => setCountdown(c => (c <= 1 ? 0 : c - 1)), 1000)
     return () => clearInterval(id)
   }, [xIsNext, timedMode, !!roundResult, cpuTurn, !!players])
+
+  // Fire the auto-move when countdown reaches zero (separate from the tick to avoid
+  // calling setState side-effects inside a state updater)
+  useEffect(() => {
+    if (countdown !== 0) return
+    setCountdown(null)
+    autoMoveRef.current()
+  }, [countdown])
 
   if (splash) return <Splash onDone={() => setSplash(false)} playIntroMusic={audio.playIntroMusic} />
 
