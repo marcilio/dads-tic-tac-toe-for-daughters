@@ -415,12 +415,31 @@ h1 {
   border-color: #e94560;
 }
 
-.status {
-  font-size: 1.2rem;
+.status-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
   margin-bottom: 12px;
-  text-align: center;
   min-height: 1.5em;
 }
+
+.status {
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.countdown {
+  font-size: 1.6rem;
+  font-weight: 900;
+  width: 2rem;
+  text-align: center;
+  transition: color 0.3s;
+}
+
+.countdown[data-level="safe"]   { color: #55efc4; }
+.countdown[data-level="warn"]   { color: #feca57; }
+.countdown[data-level="danger"] { color: #e94560; }
 
 .board-row {
   display: flex;

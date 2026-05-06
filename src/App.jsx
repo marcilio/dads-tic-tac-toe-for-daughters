@@ -276,6 +276,7 @@ function Setup({ onStart }) {
   const [mode, setMode] = useState('2p')
   const [difficulty, setDifficulty] = useState('hard')
   const [tournament, setTournament] = useState(null) // null=casual, 2=best of 3, 3=best of 5
+  const [timed, setTimed] = useState(false)
   const [p1, setP1] = useState({ name: 'Ana', avatar: '🐶' })
   const [p2, setP2] = useState({ name: 'Marina', avatar: '🐱' })
 
@@ -284,7 +285,7 @@ function Setup({ onStart }) {
   const canStart = p1Valid && (mode === 'cpu' || p2Valid)
 
   function handleStart() {
-    onStart(p1, mode === 'cpu' ? CPU_PLAYER : p2, mode, difficulty, tournament)
+    onStart(p1, mode === 'cpu' ? CPU_PLAYER : p2, mode, difficulty, tournament, timed)
   }
 
   return (
@@ -316,6 +317,13 @@ function Setup({ onStart }) {
           <button className={`mode-btn ${tournament === null ? 'mode-btn-active' : ''}`} onClick={() => setTournament(null)}>Casual</button>
           <button className={`mode-btn ${tournament === 2 ? 'mode-btn-active' : ''}`} onClick={() => setTournament(2)}>Best of 3</button>
           <button className={`mode-btn ${tournament === 3 ? 'mode-btn-active' : ''}`} onClick={() => setTournament(3)}>Best of 5</button>
+        </div>
+      </div>
+      <div className="tournament-toggle">
+        <span className="tournament-label">Timer</span>
+        <div className="mode-toggle">
+          <button className={`mode-btn ${!timed ? 'mode-btn-active' : ''}`} onClick={() => setTimed(false)}>Off</button>
+          <button className={`mode-btn ${timed ? 'mode-btn-active' : ''}`} onClick={() => setTimed(true)}>5 sec</button>
         </div>
       </div>
       <button className="restart-btn" disabled={!canStart} onClick={handleStart}>
@@ -388,7 +396,7 @@ function Square({ value, onClick, highlight }) {
   )
 }
 
-function Board({ squares, onPlay, xIsNext, players, audio, speech, cpuTurn }) {
+function Board({ squares, onPlay, xIsNext, players, audio, speech, cpuTurn, countdown }) {
   const { winner, line } = calculateWinner(squares)
   const isDraw = !winner && squares.every(Boolean)
   const current = players[xIsNext ? 0 : 1]
@@ -412,9 +420,16 @@ function Board({ squares, onPlay, xIsNext, players, audio, speech, cpuTurn }) {
   else if (cpuTurn) status = '🤖 Computer is thinking...'
   else status = `${current.avatar} ${current.name}'s turn`
 
+  const countdownLevel = countdown >= 3 ? 'safe' : countdown === 2 ? 'warn' : 'danger'
+
   return (
     <>
-      <div className="status">{status}</div>
+      <div className="status-row">
+        <div className="status">{status}</div>
+        {countdown !== null && (
+          <div className="countdown" data-level={countdownLevel}>{countdown}</div>
+        )}
+      </div>
       {[0, 1, 2].map(row => (
         <div key={row} className="board-row">
           {[0, 1, 2].map(col => {
@@ -587,6 +602,9 @@ export default function Game() {
   const [mode, setMode] = useState('2p')
   const [difficulty, setDifficulty] = useState('hard')
   const [tournament, setTournament] = useState(null)
+  const [timedMode, setTimedMode] = useState(false)
+  const [countdown, setCountdown] = useState(null)
+  const autoMoveRef = useRef(null)
   const [scores, setScores] = useState([0, 0])
   const [squares, setSquares] = useState(Array(9).fill(null))
   const [xIsNext, setXIsNext] = useState(true)
@@ -628,15 +646,44 @@ export default function Game() {
     return () => clearTimeout(timer)
   }, [cpuTurn, squares, players, difficulty])
 
+  // Keep autoMoveRef current every render so the interval always has fresh state
+  autoMoveRef.current = () => {
+    const next = squares.slice()
+    const move = randomMove(next)
+    if (move === undefined) return
+    const currentPlayer = players[xIsNext ? 0 : 1]
+    next[move] = currentPlayer.avatar
+    const { winner: nextWinner } = calculateWinner(next)
+    const nextDraw = !nextWinner && next.every(Boolean)
+    if (nextWinner) { audio.playWin(); speech.announceWin(currentPlayer.name) }
+    else if (nextDraw) { audio.playDraw(); speech.announceDraw() }
+    else { xIsNext ? audio.playX() : audio.playO(); speech.cheerMove(currentPlayer.name) }
+    handlePlay(next)
+  }
+
+  // Start a fresh 5-second countdown whenever the active player changes
+  useEffect(() => {
+    if (!timedMode || !players || roundResult || cpuTurn) { setCountdown(null); return }
+    setCountdown(5)
+    const id = setInterval(() => {
+      setCountdown(c => {
+        if (c <= 1) { clearInterval(id); autoMoveRef.current(); return null }
+        return c - 1
+      })
+    }, 1000)
+    return () => clearInterval(id)
+  }, [xIsNext, timedMode, !!roundResult, cpuTurn, !!players])
+
   if (splash) return <Splash onDone={() => setSplash(false)} playIntroMusic={audio.playIntroMusic} />
 
   const copyright = <p className="game-copyright">© {new Date().getFullYear()} Made with ♥ by <a href="https://www.linkedin.com/in/marcilio/" target="_blank" rel="noreferrer" className="copyright-link">Marcilio</a> for Ana &amp; Marina</p>
 
-  function handleStart(p1, p2, gameMode, gameDifficulty, gameTournament) {
+  function handleStart(p1, p2, gameMode, gameDifficulty, gameTournament, gameTimed) {
     setPlayers([p1, p2])
     setMode(gameMode)
     setDifficulty(gameDifficulty)
     setTournament(gameTournament)
+    setTimedMode(gameTimed)
     setScores([0, 0])
     setRoundStarter(true)
     setRoundResult(null)
@@ -723,7 +770,7 @@ export default function Game() {
         ))}
       </div>
       <div className="game-board">
-        <Board squares={squares} onPlay={handlePlay} xIsNext={xIsNext} players={players} audio={audio} speech={speech} cpuTurn={cpuTurn} />
+        <Board squares={squares} onPlay={handlePlay} xIsNext={xIsNext} players={players} audio={audio} speech={speech} cpuTurn={cpuTurn} countdown={countdown} />
       </div>
       <div className="game-buttons">
         <button className="restart-btn" onClick={restart}>Next Round</button>
