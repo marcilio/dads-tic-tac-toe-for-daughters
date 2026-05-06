@@ -611,3 +611,114 @@ h1 {
   color: #eee;
 }
 
+/* ── Mobile ── */
+
+@media (max-width: 480px) {
+  body {
+    align-items: flex-start;
+    padding: 16px 0 32px;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+    letter-spacing: 2px;
+  }
+
+  .splash-title {
+    font-size: 3rem;
+  }
+
+  .splash-dedication {
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 0 16px;
+  }
+
+  .setup {
+    gap: 18px;
+    padding: 16px 12px;
+    width: 100%;
+  }
+
+  .setup-players {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .setup-divider {
+    margin-top: 0;
+  }
+
+  .player-setup,
+  .cpu-card {
+    width: min(320px, 100%);
+  }
+
+  .avatar-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .square {
+    width: 28vw;
+    height: 28vw;
+    max-width: 90px;
+    max-height: 90px;
+    font-size: 2rem;
+  }
+
+  .status {
+    font-size: 1rem;
+  }
+
+  .scoreboard {
+    gap: 8px;
+  }
+
+  .score-card {
+    padding: 8px 14px;
+    min-width: 80px;
+  }
+
+  .score-value {
+    font-size: 1.5rem;
+  }
+
+  .game {
+    gap: 14px;
+    padding: 0 8px;
+    width: 100%;
+  }
+
+  .game-buttons {
+    flex-direction: column;
+    width: 100%;
+    padding: 0 16px;
+  }
+
+  .restart-btn,
+  .secondary-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .tournament-toggle .mode-toggle {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .tw-avatar {
+    font-size: 4rem;
+  }
+
+  .tw-name {
+    font-size: 1.8rem;
+  }
+
+  .tw-scores {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
