@@ -190,10 +190,8 @@ function Board({ squares, onPlay, xIsNext, players, audio }) {
 export default function Game() {
   const [players, setPlayers] = useState(null)
   const [scores, setScores] = useState([0, 0])
-  const [history, setHistory] = useState([Array(9).fill(null)])
-  const [currentMove, setCurrentMove] = useState(0)
-  const current = history[currentMove]
-  const xIsNext = currentMove % 2 === 0
+  const [squares, setSquares] = useState(Array(9).fill(null))
+  const [xIsNext, setXIsNext] = useState(true)
   const audio = useAudio()
 
   function handleStart(p1, p2) {
@@ -207,21 +205,20 @@ export default function Game() {
       const idx = players.findIndex(p => p.avatar === winner)
       if (idx !== -1) setScores(s => s.map((v, i) => i === idx ? v + 1 : v))
     }
-    const nextHistory = history.slice(0, currentMove + 1).concat([next])
-    setHistory(nextHistory)
-    setCurrentMove(nextHistory.length - 1)
+    setSquares(next)
+    setXIsNext(x => !x)
   }
 
   function restart() {
-    setHistory([Array(9).fill(null)])
-    setCurrentMove(0)
+    setSquares(Array(9).fill(null))
+    setXIsNext(true)
   }
 
   function changePlayers() {
     setPlayers(null)
     setScores([0, 0])
-    setHistory([Array(9).fill(null)])
-    setCurrentMove(0)
+    setSquares(Array(9).fill(null))
+    setXIsNext(true)
   }
 
   if (!players) return <Setup onStart={handleStart} />
@@ -239,22 +236,11 @@ export default function Game() {
         ))}
       </div>
       <div className="game-board">
-        <Board squares={current} onPlay={handlePlay} xIsNext={xIsNext} players={players} audio={audio} />
+        <Board squares={squares} onPlay={handlePlay} xIsNext={xIsNext} players={players} audio={audio} />
       </div>
-      <div className="game-info">
-        <div className="game-buttons">
-          <button className="restart-btn" onClick={restart}>Next Round</button>
-          <button className="secondary-btn" onClick={changePlayers}>Change Players</button>
-        </div>
-        <ol>
-          {history.map((_, move) => (
-            <li key={move}>
-              <button onClick={() => setCurrentMove(move)}>
-                {move === 0 ? 'Go to start' : `Go to move #${move}`}
-              </button>
-            </li>
-          ))}
-        </ol>
+      <div className="game-buttons">
+        <button className="restart-btn" onClick={restart}>Next Round</button>
+        <button className="secondary-btn" onClick={changePlayers}>Change Players</button>
       </div>
     </div>
   )

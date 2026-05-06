@@ -244,13 +244,6 @@ h1 {
   color: #fff;
 }
 
-.game-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
 .game-buttons {
   display: flex;
   gap: 10px;
@@ -292,26 +285,3 @@ h1 {
   border-color: #aaa;
 }
 
-ol {
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: center;
-  max-width: 300px;
-}
-
-ol button {
-  padding: 4px 10px;
-  font-size: 0.85rem;
-  background: #16213e;
-  color: #ccc;
-  border: 1px solid #0f3460;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-ol button:hover {
-  background: #0f3460;
-}
