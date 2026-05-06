@@ -1,6 +1,9 @@
 import { useState, useRef } from 'react'
 import './App.css'
 
+const AVATARS = ['🐶','🐱','🐯','🦊','🐻','🐼','🐨','🦁','🐸','🐙','🦋','🦄','🐲','🤖','👾','🎃','🌟','🔥','💎','🎯']
+const NAME_RE = /^[a-zA-Z0-9 '_-]+$/
+
 function useAudio() {
   const ctxRef = useRef(null)
 
@@ -24,7 +27,6 @@ function useAudio() {
   }
 
   function playWin() {
-    // ascending C-E-G arpeggio
     [[523, 0], [659, 0.12], [784, 0.24], [1047, 0.38]].forEach(([freq, delay]) => {
       const ctx = getCtx()
       const osc = ctx.createOscillator()
@@ -42,7 +44,6 @@ function useAudio() {
   }
 
   function playDraw() {
-    // descending two-tone "wah-wah"
     [[440, 0], [330, 0.18]].forEach(([freq, delay]) => {
       const ctx = getCtx()
       const osc = ctx.createOscillator()
@@ -67,6 +68,70 @@ function useAudio() {
   }
 }
 
+function PlayerSetup({ label, player, onChange }) {
+  const error = player.name.length > 0 && !NAME_RE.test(player.name)
+
+  function handleName(e) {
+    const val = e.target.value.slice(0, 16)
+    onChange({ ...player, name: val })
+  }
+
+  return (
+    <div className="player-setup">
+      <div className="player-setup-label">{label}</div>
+      <div className="avatar-preview">{player.avatar}</div>
+      <input
+        className={`name-input ${error ? 'name-input-error' : ''}`}
+        type="text"
+        placeholder="Enter name"
+        value={player.name}
+        onChange={handleName}
+        maxLength={16}
+      />
+      {error && <div className="name-error">Letters, numbers, spaces, ' _ - only</div>}
+      <div className="avatar-grid">
+        {AVATARS.map(a => (
+          <button
+            key={a}
+            className={`avatar-btn ${player.avatar === a ? 'avatar-selected' : ''}`}
+            onClick={() => onChange({ ...player, avatar: a })}
+          >
+            {a}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function Setup({ onStart }) {
+  const [p1, setP1] = useState({ name: '', avatar: '🐶' })
+  const [p2, setP2] = useState({ name: '', avatar: '🐱' })
+
+  const p1Valid = p1.name.trim().length > 0 && NAME_RE.test(p1.name)
+  const p2Valid = p2.name.trim().length > 0 && NAME_RE.test(p2.name)
+  const canStart = p1Valid && p2Valid
+
+  return (
+    <div className="setup">
+      <h1>Tic-Tac-Toe</h1>
+      <p className="setup-subtitle">Set up your players</p>
+      <div className="setup-players">
+        <PlayerSetup label="Player X" player={p1} onChange={setP1} />
+        <div className="setup-divider">VS</div>
+        <PlayerSetup label="Player O" player={p2} onChange={setP2} />
+      </div>
+      <button
+        className="restart-btn"
+        disabled={!canStart}
+        onClick={() => onStart(p1, p2)}
+      >
+        Start Game
+      </button>
+    </div>
+  )
+}
+
 function Square({ value, onClick, highlight }) {
   return (
     <button className={`square ${highlight ? 'highlight' : ''}`} onClick={onClick}>
@@ -75,9 +140,11 @@ function Square({ value, onClick, highlight }) {
   )
 }
 
-function Board({ squares, onPlay, xIsNext, audio }) {
+function Board({ squares, onPlay, xIsNext, players, audio }) {
   const { winner, line } = calculateWinner(squares)
   const isDraw = !winner && squares.every(Boolean)
+  const current = players[xIsNext ? 0 : 1]
+  const winnerPlayer = winner ? players[winner === 'X' ? 0 : 1] : null
 
   function handleClick(i) {
     if (squares[i] || winner) return
@@ -92,9 +159,9 @@ function Board({ squares, onPlay, xIsNext, audio }) {
   }
 
   let status
-  if (winner) status = `Winner: ${winner}`
+  if (winnerPlayer) status = `${winnerPlayer.avatar} ${winnerPlayer.name} wins!`
   else if (isDraw) status = "It's a draw!"
-  else status = `Next player: ${xIsNext ? 'X' : 'O'}`
+  else status = `${current.avatar} ${current.name}'s turn`
 
   return (
     <>
@@ -119,11 +186,16 @@ function Board({ squares, onPlay, xIsNext, audio }) {
 }
 
 export default function Game() {
+  const [players, setPlayers] = useState(null)
   const [history, setHistory] = useState([Array(9).fill(null)])
   const [currentMove, setCurrentMove] = useState(0)
   const current = history[currentMove]
   const xIsNext = currentMove % 2 === 0
   const audio = useAudio()
+
+  function handleStart(p1, p2) {
+    setPlayers([p1, p2])
+  }
 
   function handlePlay(next) {
     const nextHistory = history.slice(0, currentMove + 1).concat([next])
@@ -136,14 +208,33 @@ export default function Game() {
     setCurrentMove(0)
   }
 
+  function changePlayers() {
+    setPlayers(null)
+    setHistory([Array(9).fill(null)])
+    setCurrentMove(0)
+  }
+
+  if (!players) return <Setup onStart={handleStart} />
+
   return (
     <div className="game">
       <h1>Tic-Tac-Toe</h1>
+      <div className="player-bar">
+        <span className={`player-tag ${xIsNext ? 'player-tag-active' : ''}`}>
+          {players[0].avatar} {players[0].name} <em>X</em>
+        </span>
+        <span className={`player-tag ${!xIsNext ? 'player-tag-active' : ''}`}>
+          {players[1].avatar} {players[1].name} <em>O</em>
+        </span>
+      </div>
       <div className="game-board">
-        <Board squares={current} onPlay={handlePlay} xIsNext={xIsNext} audio={audio} />
+        <Board squares={current} onPlay={handlePlay} xIsNext={xIsNext} players={players} audio={audio} />
       </div>
       <div className="game-info">
-        <button className="restart-btn" onClick={restart}>Restart</button>
+        <div className="game-buttons">
+          <button className="restart-btn" onClick={restart}>Restart</button>
+          <button className="secondary-btn" onClick={changePlayers}>Change Players</button>
+        </div>
         <ol>
           {history.map((_, move) => (
             <li key={move}>
