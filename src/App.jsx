@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import './App.css'
 
 const AVATARS = ['🐶','🐱','🐯','🦊','🐻','🐼','🐨','🦁','🐸','🐙','🦋','🦄','🐲','🤖','👾','🎃','🌟','🔥','💎','🎯']
@@ -223,6 +223,7 @@ const CPU_PLAYER = { name: 'Computer', avatar: '🤖' }
 function Setup({ onStart }) {
   const [mode, setMode] = useState('2p')
   const [difficulty, setDifficulty] = useState('hard')
+  const [tournament, setTournament] = useState(null) // null=casual, 2=best of 3, 3=best of 5
   const [p1, setP1] = useState({ name: 'Ana', avatar: '🐶' })
   const [p2, setP2] = useState({ name: 'Marina', avatar: '🐱' })
 
@@ -231,7 +232,7 @@ function Setup({ onStart }) {
   const canStart = p1Valid && (mode === 'cpu' || p2Valid)
 
   function handleStart() {
-    onStart(p1, mode === 'cpu' ? CPU_PLAYER : p2, mode, difficulty)
+    onStart(p1, mode === 'cpu' ? CPU_PLAYER : p2, mode, difficulty, tournament)
   }
 
   return (
@@ -257,9 +258,72 @@ function Setup({ onStart }) {
           <PlayerSetup label="Player 2" player={p2} takenAvatar={p1.avatar} onChange={setP2} />
         )}
       </div>
+      <div className="tournament-toggle">
+        <span className="tournament-label">Mode</span>
+        <div className="mode-toggle">
+          <button className={`mode-btn ${tournament === null ? 'mode-btn-active' : ''}`} onClick={() => setTournament(null)}>Casual</button>
+          <button className={`mode-btn ${tournament === 2 ? 'mode-btn-active' : ''}`} onClick={() => setTournament(2)}>Best of 3</button>
+          <button className={`mode-btn ${tournament === 3 ? 'mode-btn-active' : ''}`} onClick={() => setTournament(3)}>Best of 5</button>
+        </div>
+      </div>
       <button className="restart-btn" disabled={!canStart} onClick={handleStart}>
         Start Game
       </button>
+    </div>
+  )
+}
+
+function Confetti() {
+  const pieces = useMemo(() =>
+    Array.from({ length: 70 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      color: ['#e94560','#feca57','#ff9f43','#48dbfb','#ff6b9d','#a29bfe','#55efc4'][Math.floor(Math.random() * 7)],
+      delay: Math.random() * 3,
+      duration: 2.5 + Math.random() * 2,
+      size: 7 + Math.random() * 8,
+      rotate: Math.random() * 360,
+    })), [])
+
+  return (
+    <div className="confetti-container">
+      {pieces.map(p => (
+        <div key={p.id} className="confetti-piece" style={{
+          left: `${p.left}%`,
+          background: p.color,
+          width: p.size,
+          height: p.size,
+          animationDelay: `${p.delay}s`,
+          animationDuration: `${p.duration}s`,
+          '--rot': `${p.rotate}deg`,
+        }} />
+      ))}
+    </div>
+  )
+}
+
+function TournamentWinner({ winner, players, scores, onPlayAgain, onChangePlayers }) {
+  return (
+    <div className="tournament-screen">
+      <Confetti />
+      <div className="tw-content">
+        <p className="tw-subtitle">Tournament Champion</p>
+        <div className="tw-avatar">{winner.avatar}</div>
+        <h2 className="tw-name">{winner.name}</h2>
+        <div className="tw-scores">
+          {players.map((p, i) => (
+            <div key={i} className={`tw-score-card ${p === winner ? 'tw-score-winner' : ''}`}>
+              <span>{p.avatar}</span>
+              <span>{p.name}</span>
+              <span className="tw-score-val">{scores[i]}</span>
+            </div>
+          ))}
+        </div>
+        <div className="game-buttons">
+          <button className="restart-btn" onClick={onPlayAgain}>Play Again</button>
+          <button className="secondary-btn" onClick={onChangePlayers}>Change Players</button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -401,10 +465,13 @@ export default function Game() {
   const [players, setPlayers] = useState(null)
   const [mode, setMode] = useState('2p')
   const [difficulty, setDifficulty] = useState('hard')
+  const [tournament, setTournament] = useState(null)
   const [scores, setScores] = useState([0, 0])
   const [squares, setSquares] = useState(Array(9).fill(null))
   const [xIsNext, setXIsNext] = useState(true)
   const [roundStarter, setRoundStarter] = useState(true)
+  const [roundResult, setRoundResult] = useState(null) // { winnerIdx: 0|1|null }
+  const [seriesWinner, setSeriesWinner] = useState(null)
   const audio = useAudio()
 
   const cpuTurn = mode === 'cpu' && !xIsNext && !calculateWinner(squares).winner && !squares.every(Boolean)
@@ -421,9 +488,13 @@ export default function Game() {
       const isDraw = !winner && next.every(Boolean)
       if (winner) {
         audio.playWin()
-        setScores(s => s.map((v, i) => i === 1 ? v + 1 : v))
+        const newScores = scores.map((v, i) => i === 1 ? v + 1 : v)
+        setScores(newScores)
+        setRoundResult({ winnerIdx: 1 })
+        if (tournament && newScores[1] >= tournament) setSeriesWinner(1)
       } else if (isDraw) {
         audio.playDraw()
+        setRoundResult({ winnerIdx: null })
       } else {
         audio.playO()
       }
@@ -435,12 +506,15 @@ export default function Game() {
 
   if (splash) return <Splash onDone={() => setSplash(false)} playIntroMusic={audio.playIntroMusic} />
 
-  function handleStart(p1, p2, gameMode, gameDifficulty) {
+  function handleStart(p1, p2, gameMode, gameDifficulty, gameTournament) {
     setPlayers([p1, p2])
     setMode(gameMode)
     setDifficulty(gameDifficulty)
+    setTournament(gameTournament)
     setScores([0, 0])
     setRoundStarter(true)
+    setRoundResult(null)
+    setSeriesWinner(null)
     audio.startBgMusic()
   }
 
@@ -448,7 +522,14 @@ export default function Game() {
     const { winner } = calculateWinner(next)
     if (winner) {
       const idx = players.findIndex(p => p.avatar === winner)
-      if (idx !== -1) setScores(s => s.map((v, i) => i === idx ? v + 1 : v))
+      if (idx !== -1) {
+        const newScores = scores.map((v, i) => i === idx ? v + 1 : v)
+        setScores(newScores)
+        setRoundResult({ winnerIdx: idx })
+        if (tournament && newScores[idx] >= tournament) setSeriesWinner(idx)
+      }
+    } else if (next.every(Boolean)) {
+      setRoundResult({ winnerIdx: null })
     }
     setSquares(next)
     setXIsNext(x => !x)
@@ -459,6 +540,7 @@ export default function Game() {
     setRoundStarter(nextStarter)
     setSquares(Array(9).fill(null))
     setXIsNext(nextStarter)
+    setRoundResult(null)
   }
 
   function changePlayers() {
@@ -468,17 +550,43 @@ export default function Game() {
     setSquares(Array(9).fill(null))
     setXIsNext(true)
     setRoundStarter(true)
+    setRoundResult(null)
+    setSeriesWinner(null)
   }
 
   if (!players) return <Setup onStart={handleStart} />
 
+  if (seriesWinner !== null) return (
+    <TournamentWinner
+      winner={players[seriesWinner]}
+      players={players}
+      scores={scores}
+      onPlayAgain={() => {
+        setScores([0, 0])
+        setSquares(Array(9).fill(null))
+        setXIsNext(true)
+        setRoundStarter(true)
+        setRoundResult(null)
+        setSeriesWinner(null)
+      }}
+      onChangePlayers={changePlayers}
+    />
+  )
+
+  const tournamentLabel = tournament ? `Best of ${tournament === 2 ? 3 : 5} — first to ${tournament}` : null
+
   return (
     <div className="game">
       <GameTitle />
+      {tournamentLabel && <p className="tournament-label-game">{tournamentLabel}</p>}
       <div className="scoreboard">
         {players.map((p, i) => (
           <div key={i} className={`score-card ${xIsNext === (i === 0) ? 'score-card-active' : ''}`}>
-            <span className="score-avatar">{p.avatar}</span>
+            <span className={`score-avatar ${
+              roundResult?.winnerIdx === i ? 'avatar-win' :
+              roundResult && roundResult.winnerIdx !== null && roundResult.winnerIdx !== i ? 'avatar-lose' :
+              roundResult?.winnerIdx === null ? 'avatar-draw' : ''
+            }`}>{p.avatar}</span>
             <span className="score-name">{p.name}</span>
             <span className="score-value">{scores[i]}</span>
           </div>
