@@ -4,6 +4,58 @@ import './App.css'
 const AVATARS = ['🐶','🐱','🐯','🦊','🐻','🐼','🐨','🦁','🐸','🐙','🦋','🦄','🐲','🤖','👾','🎃','🌟','🔥','💎','🎯']
 const NAME_RE = /^[a-zA-Z0-9 '_-]+$/
 
+const MOVE_CHEERS = [
+  'Good move!', 'Nice one!', 'Awesome play!', 'Brilliant!',
+  'Smart thinking!', 'Interesting choice!', 'Well played!',
+  'Strong move!', "I like it!", 'Making your mark!', 'Going for it!',
+]
+const WIN_PHRASES = [
+  n => `${n} wins! Amazing!`,
+  n => `What a game! ${n} takes it!`,
+  n => `Brilliant play, ${n}!`,
+  n => `Well done, ${n}! You won!`,
+  n => `Unstoppable! ${n} wins!`,
+  n => `${n} is on fire!`,
+]
+const DRAW_PHRASES = [
+  "It's a draw! Well played both!",
+  "A tie! Nobody wins this time!",
+  "What a match! It's a draw!",
+  "Equal skills! What a battle!",
+  "No winner! Both played great!",
+]
+
+function useSpeech() {
+  const ok = typeof window !== 'undefined' && 'speechSynthesis' in window
+
+  function say(text, rate = 1.1, pitch = 1.2) {
+    if (!ok) return
+    window.speechSynthesis.cancel()
+    const u = new SpeechSynthesisUtterance(text)
+    u.rate = rate
+    u.pitch = pitch
+    u.volume = 0.85
+    window.speechSynthesis.speak(u)
+  }
+
+  function cheerMove(playerName) {
+    if (Math.random() > 0.35) return
+    const phrase = MOVE_CHEERS[Math.floor(Math.random() * MOVE_CHEERS.length)]
+    say(Math.random() > 0.5 ? `${playerName}! ${phrase}` : phrase)
+  }
+
+  function announceWin(playerName) {
+    const fn = WIN_PHRASES[Math.floor(Math.random() * WIN_PHRASES.length)]
+    say(fn(playerName), 1.0, 1.3)
+  }
+
+  function announceDraw() {
+    say(DRAW_PHRASES[Math.floor(Math.random() * DRAW_PHRASES.length)])
+  }
+
+  return { cheerMove, announceWin, announceDraw }
+}
+
 function useAudio() {
   const ctxRef = useRef(null)
 
@@ -336,7 +388,7 @@ function Square({ value, onClick, highlight }) {
   )
 }
 
-function Board({ squares, onPlay, xIsNext, players, audio, cpuTurn }) {
+function Board({ squares, onPlay, xIsNext, players, audio, speech, cpuTurn }) {
   const { winner, line } = calculateWinner(squares)
   const isDraw = !winner && squares.every(Boolean)
   const current = players[xIsNext ? 0 : 1]
@@ -348,9 +400,9 @@ function Board({ squares, onPlay, xIsNext, players, audio, cpuTurn }) {
     next[i] = current.avatar
     const { winner: nextWinner } = calculateWinner(next)
     const nextDraw = !nextWinner && next.every(Boolean)
-    if (nextWinner) audio.playWin()
-    else if (nextDraw) audio.playDraw()
-    else xIsNext ? audio.playX() : audio.playO()
+    if (nextWinner) { audio.playWin(); speech.announceWin(current.name) }
+    else if (nextDraw) { audio.playDraw(); speech.announceDraw() }
+    else { xIsNext ? audio.playX() : audio.playO(); speech.cheerMove(current.name) }
     onPlay(next)
   }
 
@@ -382,53 +434,122 @@ function Board({ squares, onPlay, xIsNext, players, audio, cpuTurn }) {
   )
 }
 
-function SwapNames({ active }) {
-  const anaRef = useRef(null)
-  const marinaRef = useRef(null)
-  const [offset, setOffset] = useState(0)
-  const [swapped, setSwapped] = useState(false)
+const POOL = 'anamarina'
+
+function useScramble(text) {
+  const randChar = () => POOL[Math.floor(Math.random() * POOL.length)]
+  const [display, setDisplay] = useState(() => text.split('').map(randChar).join(''))
+  const [done, setDone] = useState(false)
 
   useEffect(() => {
-    if (anaRef.current && marinaRef.current) {
-      const a = anaRef.current.getBoundingClientRect()
-      const m = marinaRef.current.getBoundingClientRect()
-      setOffset(m.left - a.left)
-    }
+    let frame = 0
+    const FRAMES = 40
+    const id = setInterval(() => {
+      frame++
+      const locked = Math.floor((frame / FRAMES) * text.length)
+      setDisplay(text.split('').map((ch, i) => i < locked ? ch : randChar()).join(''))
+      if (frame >= FRAMES) {
+        clearInterval(id)
+        setDisplay(text)
+        setDone(true)
+      }
+    }, 50)
+    return () => clearInterval(id)
   }, [])
 
+  return { display, done }
+}
+
+// phases: scramble -> split (names drift apart) -> swap (they alternate)
+function SwapNames({ active }) {
+  const marinaRef = useRef(null)
+  const anaRef = useRef(null)
+  const rowRef = useRef(null)
+  const [splitOffset, setSplitOffset] = useState(0)
+  const [swapTransform, setSwapTransform] = useState(0)
+  // two heart positions: marina-left vs ana-left orientations differ because widths differ
+  const [heartPositions, setHeartPositions] = useState(null)
+  const [phase, setPhase] = useState('scramble')
+  const [swapped, setSwapped] = useState(false)
+
+  const { display: marinaDisplay, done: marinaDone } = useScramble('Marina')
+  const { display: anaDisplay, done: anaDone } = useScramble('Ana')
+  const bothDone = marinaDone && anaDone
+
   useEffect(() => {
-    if (!active) { setSwapped(false); return }
+    if (!bothDone) return
+    if (marinaRef.current && anaRef.current && rowRef.current) {
+      const m = marinaRef.current.getBoundingClientRect()
+      const a = anaRef.current.getBoundingClientRect()
+      const row = rowRef.current.getBoundingClientRect()
+      const GAP = 32
+      const split = GAP / 2
+      const centerDist = m.width / 2 + a.width / 2
+      setSplitOffset(split)
+      setSwapTransform(centerDist + split)
+      // marina-left:  gap center = m.right (natural touching point)
+      // ana-left:     gap center = row-relative midpoint of the combined block
+      //               = m.left - row.left + (m.width + a.width) / 2
+      setHeartPositions({
+        normal: m.right - row.left,
+        swapped: m.left - row.left + (m.width + a.width) / 2,
+      })
+    }
+    const tid = setTimeout(() => setPhase('split'), 150)
+    return () => clearTimeout(tid)
+  }, [bothDone])
+
+  useEffect(() => {
+    if (phase !== 'split') return
+    const tid = setTimeout(() => setPhase('swap'), 900)
+    return () => clearTimeout(tid)
+  }, [phase])
+
+  useEffect(() => {
+    if (phase !== 'swap' || !active) return
     const id = setInterval(() => setSwapped(s => !s), 2000)
     return () => clearInterval(id)
+  }, [phase, active])
+
+  useEffect(() => {
+    if (!active) setSwapped(false)
   }, [active])
 
-  const transition = 'transform 0.9s cubic-bezier(0.68, -0.4, 0.27, 1.4)'
+  const splitTrans = phase !== 'scramble' ? 'transform 0.8s ease-out' : 'none'
+  const swapTrans = phase === 'swap' ? 'transform 0.9s cubic-bezier(0.68, -0.4, 0.27, 1.4)' : splitTrans
+
+  let marinaX = 0, anaX = 0
+  if (phase === 'split') { marinaX = -splitOffset; anaX = splitOffset }
+  if (phase === 'swap') {
+    marinaX = swapped ? swapTransform : -splitOffset
+    anaX = swapped ? -swapTransform : splitOffset
+  }
 
   return (
     <div className="names-swap-area">
-      <div className="names-swap-row">
-        <span
-          ref={anaRef}
-          className="splash-names"
-          style={{
-            display: 'inline-block',
-            transform: `translateX(${swapped ? offset : 0}px)`,
-            transition,
-            position: 'relative',
-            zIndex: swapped ? 2 : 1,
-          }}
-        >Ana</span>
+      <div ref={rowRef} className="names-swap-row">
         <span
           ref={marinaRef}
           className="splash-names"
-          style={{
-            display: 'inline-block',
-            transform: `translateX(${swapped ? -offset : 0}px)`,
-            transition,
-            position: 'relative',
-            zIndex: swapped ? 1 : 2,
-          }}
-        >Marina</span>
+          style={{ display: 'inline-block', transform: `translateX(${marinaX}px)`, transition: swapTrans, position: 'relative', zIndex: swapped ? 1 : 2 }}
+        >{marinaDisplay}</span>
+        <span
+          ref={anaRef}
+          className="splash-names"
+          style={{ display: 'inline-block', transform: `translateX(${anaX}px)`, transition: swapTrans, position: 'relative', zIndex: swapped ? 2 : 1 }}
+        >{anaDisplay}</span>
+        {heartPositions !== null && (
+          <span
+            className="names-heart"
+            style={{
+              left: swapped ? heartPositions.swapped : heartPositions.normal,
+              transition: phase === 'swap'
+                ? 'left 0.9s cubic-bezier(0.68, -0.4, 0.27, 1.4), opacity 0.6s ease'
+                : 'opacity 0.6s ease',
+              opacity: phase !== 'scramble' ? 1 : 0,
+            }}
+          >♥</span>
+        )}
       </div>
     </div>
   )
@@ -473,6 +594,7 @@ export default function Game() {
   const [roundResult, setRoundResult] = useState(null) // { winnerIdx: 0|1|null }
   const [seriesWinner, setSeriesWinner] = useState(null)
   const audio = useAudio()
+  const speech = useSpeech()
 
   const cpuTurn = mode === 'cpu' && !xIsNext && !calculateWinner(squares).winner && !squares.every(Boolean)
 
@@ -488,12 +610,14 @@ export default function Game() {
       const isDraw = !winner && next.every(Boolean)
       if (winner) {
         audio.playWin()
+        speech.announceWin(players[1].name)
         const newScores = scores.map((v, i) => i === 1 ? v + 1 : v)
         setScores(newScores)
         setRoundResult({ winnerIdx: 1 })
         if (tournament && newScores[1] >= tournament) setSeriesWinner(1)
       } else if (isDraw) {
         audio.playDraw()
+        speech.announceDraw()
         setRoundResult({ winnerIdx: null })
       } else {
         audio.playO()
@@ -593,12 +717,13 @@ export default function Game() {
         ))}
       </div>
       <div className="game-board">
-        <Board squares={squares} onPlay={handlePlay} xIsNext={xIsNext} players={players} audio={audio} cpuTurn={cpuTurn} />
+        <Board squares={squares} onPlay={handlePlay} xIsNext={xIsNext} players={players} audio={audio} speech={speech} cpuTurn={cpuTurn} />
       </div>
       <div className="game-buttons">
         <button className="restart-btn" onClick={restart}>Next Round</button>
         <button className="secondary-btn" onClick={changePlayers}>Change Players</button>
       </div>
+      <p className="game-copyright">© {new Date().getFullYear()} Made with ♥ by Marcilio for Ana &amp; Marina</p>
     </div>
   )
 }
