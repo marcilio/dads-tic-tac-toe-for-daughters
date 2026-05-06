@@ -574,7 +574,7 @@ function Splash({ onDone, playIntroMusic }) {
   return (
     <div className={`splash ${phase !== 'idle' ? `splash-${phase}` : ''}`} onClick={handleTap}>
       <h1 className="splash-title">Tic-Tac-Toe</h1>
-      <p className="splash-dedication">From Marcilio to his lovely daughters</p>
+      <p className="splash-dedication">© {new Date().getFullYear()} Made with ♥ by <a href="https://www.linkedin.com/in/marcilio/" target="_blank" rel="noreferrer" className="copyright-link">Marcilio</a> for Ana &amp; Marina</p>
       <SwapNames active={phase === 'idle'} />
       {phase === 'idle' && <p className="splash-tap">Click or press any key to start</p>}
     </div>
