@@ -218,28 +218,46 @@ function GameTitle() {
   )
 }
 
+const CPU_PLAYER = { name: 'Computer', avatar: '🤖' }
+
 function Setup({ onStart }) {
+  const [mode, setMode] = useState('2p')
+  const [difficulty, setDifficulty] = useState('hard')
   const [p1, setP1] = useState({ name: 'Ana', avatar: '🐶' })
   const [p2, setP2] = useState({ name: 'Marina', avatar: '🐱' })
 
   const p1Valid = p1.name.trim().length > 0 && NAME_RE.test(p1.name)
   const p2Valid = p2.name.trim().length > 0 && NAME_RE.test(p2.name)
-  const canStart = p1Valid && p2Valid
+  const canStart = p1Valid && (mode === 'cpu' || p2Valid)
+
+  function handleStart() {
+    onStart(p1, mode === 'cpu' ? CPU_PLAYER : p2, mode, difficulty)
+  }
 
   return (
     <div className="setup">
       <GameTitle />
-      <p className="setup-subtitle">Set up your players</p>
-      <div className="setup-players">
-        <PlayerSetup label="Player 1" player={p1} takenAvatar={p2.avatar} onChange={setP1} />
-        <div className="setup-divider">VS</div>
-        <PlayerSetup label="Player 2" player={p2} takenAvatar={p1.avatar} onChange={setP2} />
+      <div className="mode-toggle">
+        <button className={`mode-btn ${mode === '2p' ? 'mode-btn-active' : ''}`} onClick={() => setMode('2p')}>2 Players</button>
+        <button className={`mode-btn ${mode === 'cpu' ? 'mode-btn-active' : ''}`} onClick={() => setMode('cpu')}>vs Computer</button>
       </div>
-      <button
-        className="restart-btn"
-        disabled={!canStart}
-        onClick={() => onStart(p1, p2)}
-      >
+      <div className="setup-players">
+        <PlayerSetup label="Player 1" player={p1} takenAvatar={mode === '2p' ? p2.avatar : CPU_PLAYER.avatar} onChange={setP1} />
+        <div className="setup-divider">VS</div>
+        {mode === 'cpu' ? (
+          <div className="cpu-card">
+            <div className="player-setup-label">Computer</div>
+            <div className="avatar-preview">🤖</div>
+            <div className="difficulty-toggle">
+              <button className={`diff-btn ${difficulty === 'easy' ? 'diff-btn-active' : ''}`} onClick={() => setDifficulty('easy')}>Easy</button>
+              <button className={`diff-btn ${difficulty === 'hard' ? 'diff-btn-active' : ''}`} onClick={() => setDifficulty('hard')}>Hard</button>
+            </div>
+          </div>
+        ) : (
+          <PlayerSetup label="Player 2" player={p2} takenAvatar={p1.avatar} onChange={setP2} />
+        )}
+      </div>
+      <button className="restart-btn" disabled={!canStart} onClick={handleStart}>
         Start Game
       </button>
     </div>
@@ -254,14 +272,14 @@ function Square({ value, onClick, highlight }) {
   )
 }
 
-function Board({ squares, onPlay, xIsNext, players, audio }) {
+function Board({ squares, onPlay, xIsNext, players, audio, cpuTurn }) {
   const { winner, line } = calculateWinner(squares)
   const isDraw = !winner && squares.every(Boolean)
   const current = players[xIsNext ? 0 : 1]
   const winnerPlayer = winner ? players.find(p => p.avatar === winner) : null
 
   function handleClick(i) {
-    if (squares[i] || winner) return
+    if (squares[i] || winner || cpuTurn) return
     const next = squares.slice()
     next[i] = current.avatar
     const { winner: nextWinner } = calculateWinner(next)
@@ -275,6 +293,7 @@ function Board({ squares, onPlay, xIsNext, players, audio }) {
   let status
   if (winnerPlayer) status = `${winnerPlayer.avatar} ${winnerPlayer.name} wins!`
   else if (isDraw) status = "It's a draw!"
+  else if (cpuTurn) status = '🤖 Computer is thinking...'
   else status = `${current.avatar} ${current.name}'s turn`
 
   return (
@@ -330,16 +349,48 @@ function Splash({ onDone, playIntroMusic }) {
 export default function Game() {
   const [splash, setSplash] = useState(true)
   const [players, setPlayers] = useState(null)
+  const [mode, setMode] = useState('2p')
+  const [difficulty, setDifficulty] = useState('hard')
   const [scores, setScores] = useState([0, 0])
   const [squares, setSquares] = useState(Array(9).fill(null))
   const [xIsNext, setXIsNext] = useState(true)
+  const [roundStarter, setRoundStarter] = useState(true)
   const audio = useAudio()
+
+  const cpuTurn = mode === 'cpu' && !xIsNext && !calculateWinner(squares).winner && !squares.every(Boolean)
+
+  useEffect(() => {
+    if (!cpuTurn || !players) return
+    const timer = setTimeout(() => {
+      const next = squares.slice()
+      const move = difficulty === 'easy'
+        ? randomMove(next)
+        : bestMove(next, players[0].avatar, players[1].avatar)
+      next[move] = players[1].avatar
+      const { winner } = calculateWinner(next)
+      const isDraw = !winner && next.every(Boolean)
+      if (winner) {
+        audio.playWin()
+        setScores(s => s.map((v, i) => i === 1 ? v + 1 : v))
+      } else if (isDraw) {
+        audio.playDraw()
+      } else {
+        audio.playO()
+      }
+      setSquares(next)
+      setXIsNext(true)
+    }, 650)
+    return () => clearTimeout(timer)
+  }, [cpuTurn, squares, players, difficulty])
 
   if (splash) return <Splash onDone={() => setSplash(false)} playIntroMusic={audio.playIntroMusic} />
 
-  function handleStart(p1, p2) {
+  function handleStart(p1, p2, gameMode, gameDifficulty) {
     setPlayers([p1, p2])
+    setMode(gameMode)
+    setDifficulty(gameDifficulty)
     setScores([0, 0])
+    setRoundStarter(true)
     audio.startBgMusic()
   }
 
@@ -354,8 +405,10 @@ export default function Game() {
   }
 
   function restart() {
+    const nextStarter = !roundStarter
+    setRoundStarter(nextStarter)
     setSquares(Array(9).fill(null))
-    setXIsNext(true)
+    setXIsNext(nextStarter)
   }
 
   function changePlayers() {
@@ -364,6 +417,7 @@ export default function Game() {
     setScores([0, 0])
     setSquares(Array(9).fill(null))
     setXIsNext(true)
+    setRoundStarter(true)
   }
 
   if (!players) return <Setup onStart={handleStart} />
@@ -381,7 +435,7 @@ export default function Game() {
         ))}
       </div>
       <div className="game-board">
-        <Board squares={squares} onPlay={handlePlay} xIsNext={xIsNext} players={players} audio={audio} />
+        <Board squares={squares} onPlay={handlePlay} xIsNext={xIsNext} players={players} audio={audio} cpuTurn={cpuTurn} />
       </div>
       <div className="game-buttons">
         <button className="restart-btn" onClick={restart}>Next Round</button>
@@ -389,6 +443,39 @@ export default function Game() {
       </div>
     </div>
   )
+}
+
+function randomMove(squares) {
+  const empty = squares.map((s, i) => s === null ? i : null).filter(i => i !== null)
+  return empty[Math.floor(Math.random() * empty.length)]
+}
+
+function minimax(squares, isMax, humanAvatar, cpuAvatar) {
+  const { winner } = calculateWinner(squares)
+  if (winner === cpuAvatar) return 10
+  if (winner === humanAvatar) return -10
+  if (squares.every(Boolean)) return 0
+  let best = isMax ? -Infinity : Infinity
+  for (let i = 0; i < 9; i++) {
+    if (squares[i]) continue
+    squares[i] = isMax ? cpuAvatar : humanAvatar
+    const score = minimax(squares, !isMax, humanAvatar, cpuAvatar)
+    squares[i] = null
+    best = isMax ? Math.max(best, score) : Math.min(best, score)
+  }
+  return best
+}
+
+function bestMove(squares, humanAvatar, cpuAvatar) {
+  let best = -Infinity, move = -1
+  for (let i = 0; i < 9; i++) {
+    if (squares[i]) continue
+    squares[i] = cpuAvatar
+    const score = minimax(squares, false, humanAvatar, cpuAvatar)
+    squares[i] = null
+    if (score > best) { best = score; move = i }
+  }
+  return move
 }
 
 function calculateWinner(squares) {
