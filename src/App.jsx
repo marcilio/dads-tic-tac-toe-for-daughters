@@ -60,11 +60,58 @@ function useAudio() {
     })
   }
 
+  // Background music — gentle C major pentatonic arpeggio loop
+  const bgSchedulerRef = useRef(null)
+  const bgNextBeatRef = useRef(0)
+  const bgBeatRef = useRef(0)
+  const BG_NOTES = [261.63, 329.63, 392.00, 440.00, 392.00, 329.63] // C4 E4 G4 A4 G4 E4
+  const BG_BEAT = 0.45
+
+  function scheduleBgNote(freq, time, ctx) {
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(freq, time)
+    gain.gain.setValueAtTime(0, time)
+    gain.gain.linearRampToValueAtTime(0.055, time + 0.04)
+    gain.gain.exponentialRampToValueAtTime(0.001, time + BG_BEAT * 0.85)
+    osc.start(time)
+    osc.stop(time + BG_BEAT)
+  }
+
+  function startBgMusic() {
+    const ctx = getCtx()
+    bgNextBeatRef.current = ctx.currentTime + 0.1
+    bgBeatRef.current = 0
+    bgSchedulerRef.current = setInterval(() => {
+      const ctx = ctxRef.current
+      if (!ctx) return
+      while (bgNextBeatRef.current < ctx.currentTime + 0.4) {
+        scheduleBgNote(
+          BG_NOTES[bgBeatRef.current % BG_NOTES.length],
+          bgNextBeatRef.current,
+          ctx
+        )
+        bgNextBeatRef.current += BG_BEAT
+        bgBeatRef.current++
+      }
+    }, 100)
+  }
+
+  function stopBgMusic() {
+    clearInterval(bgSchedulerRef.current)
+    bgSchedulerRef.current = null
+  }
+
   return {
     playX: () => playTone({ frequency: 520, type: 'triangle', duration: 0.18, gainPeak: 0.4 }),
     playO: () => playTone({ frequency: 300, type: 'sine', duration: 0.22, gainPeak: 0.35 }),
     playWin,
     playDraw,
+    startBgMusic,
+    stopBgMusic,
   }
 }
 
@@ -197,6 +244,7 @@ export default function Game() {
   function handleStart(p1, p2) {
     setPlayers([p1, p2])
     setScores([0, 0])
+    audio.startBgMusic()
   }
 
   function handlePlay(next) {
@@ -215,6 +263,7 @@ export default function Game() {
   }
 
   function changePlayers() {
+    audio.stopBgMusic()
     setPlayers(null)
     setScores([0, 0])
     setSquares(Array(9).fill(null))
