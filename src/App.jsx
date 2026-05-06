@@ -630,7 +630,7 @@ export default function Game() {
 
   if (splash) return <Splash onDone={() => setSplash(false)} playIntroMusic={audio.playIntroMusic} />
 
-  const copyright = <p className="game-copyright">© {new Date().getFullYear()} Made with ♥ by Marcilio for Ana &amp; Marina</p>
+  const copyright = <p className="game-copyright">© {new Date().getFullYear()} Made with ♥ by <a href="https://www.linkedin.com/in/marcilio/" target="_blank" rel="noreferrer" className="copyright-link">Marcilio</a> for Ana &amp; Marina</p>
 
   function handleStart(p1, p2, gameMode, gameDifficulty, gameTournament) {
     setPlayers([p1, p2])

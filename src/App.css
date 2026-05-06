@@ -744,3 +744,15 @@ h1 {
   user-select: none;
 }
 
+.copyright-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.copyright-link:hover {
+  opacity: 1;
+}
+
