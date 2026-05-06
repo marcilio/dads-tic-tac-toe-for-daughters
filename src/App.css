@@ -34,6 +34,76 @@ h1 {
   filter: drop-shadow(0 0 12px rgba(233, 69, 96, 0.6));
 }
 
+/* ── Splash screen ── */
+
+@keyframes splashIn {
+  from { opacity: 0; transform: scale(1.15); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes splashOut {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.6); }
+}
+
+.splash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.splash-in {
+  animation: splashIn 0.7s ease forwards;
+}
+
+.splash-out {
+  animation: splashOut 0.8s ease forwards;
+}
+
+.splash-title {
+  font-size: 5rem;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+.splash-tap {
+  margin-top: 32px;
+  font-size: 0.8rem;
+  color: #555;
+  letter-spacing: 1px;
+  animation: blink 1.4s ease-in-out infinite;
+  cursor: pointer;
+}
+
+.splash-dedication {
+  font-size: 1rem;
+  color: #888;
+  font-style: italic;
+  letter-spacing: 0.5px;
+}
+
+@keyframes nameGlow {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(254, 202, 87, 0.7)); }
+  50%       { filter: drop-shadow(0 0 18px rgba(254, 202, 87, 1)); }
+}
+
+.splash-names {
+  font-style: normal;
+  font-weight: 700;
+  background: linear-gradient(90deg, #feca57, #ff9f43, #feca57);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 2s linear infinite, nameGlow 1.5s ease-in-out infinite;
+}
+
+/* ── Shared title ── */
+
 .game-title {
   display: flex;
   flex-direction: column;

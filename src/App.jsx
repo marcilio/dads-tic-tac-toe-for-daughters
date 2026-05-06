@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import './App.css'
 
 const AVATARS = ['🐶','🐱','🐯','🦊','🐻','🐼','🐨','🦁','🐸','🐙','🦋','🦄','🐲','🤖','👾','🎃','🌟','🔥','💎','🎯']
@@ -105,6 +105,61 @@ function useAudio() {
     bgSchedulerRef.current = null
   }
 
+  function playIntroMusic() {
+    const ctx = getCtx()
+    const t = ctx.currentTime
+
+    // [frequency, startTime, duration, gainPeak, waveType]
+    const score = [
+      // — Rising fanfare (0–1.0s) —
+      [130.81, 0.00, 0.50, 0.12, 'sine'],     // C3 bass thud
+      [261.63, 0.05, 0.20, 0.28, 'triangle'], // C4
+      [329.63, 0.22, 0.20, 0.28, 'triangle'], // E4
+      [392.00, 0.39, 0.20, 0.28, 'triangle'], // G4
+      [523.25, 0.56, 0.45, 0.32, 'triangle'], // C5 peak
+
+      // — Melody (1.1–2.8s) —
+      [523.25, 1.10, 0.18, 0.22, 'triangle'], // C5
+      [587.33, 1.30, 0.18, 0.22, 'triangle'], // D5
+      [659.25, 1.50, 0.30, 0.26, 'triangle'], // E5
+      [523.25, 1.90, 0.18, 0.22, 'triangle'], // C5
+      [659.25, 2.15, 0.18, 0.22, 'triangle'], // E5
+      [784.00, 2.38, 0.55, 0.30, 'triangle'], // G5 hold
+
+      // — Bass walk under melody —
+      [130.81, 1.10, 0.35, 0.10, 'sine'],    // C3
+      [164.81, 1.50, 0.35, 0.10, 'sine'],    // E3
+      [196.00, 1.90, 0.35, 0.10, 'sine'],    // G3
+      [261.63, 2.38, 0.60, 0.12, 'sine'],    // C4
+
+      // — Harmony shimmer (2.4–3.2s) —
+      [659.25, 2.40, 0.80, 0.10, 'sine'],    // E5
+      [783.99, 2.55, 0.80, 0.08, 'sine'],    // G5
+
+      // — Grand resolution chord (3.1–4.8s) —
+      [130.81, 3.10, 1.60, 0.14, 'sine'],    // C3
+      [261.63, 3.10, 1.60, 0.12, 'sine'],    // C4
+      [523.25, 3.10, 1.60, 0.18, 'triangle'],// C5
+      [659.25, 3.10, 1.50, 0.12, 'triangle'],// E5
+      [783.99, 3.20, 1.40, 0.10, 'triangle'],// G5
+      [1046.5, 3.35, 1.20, 0.08, 'sine'],    // C6 sparkle
+    ]
+
+    score.forEach(([freq, delay, dur, peak, type]) => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.type = type
+      osc.frequency.setValueAtTime(freq, t + delay)
+      gain.gain.setValueAtTime(0, t + delay)
+      gain.gain.linearRampToValueAtTime(peak, t + delay + 0.04)
+      gain.gain.exponentialRampToValueAtTime(0.001, t + delay + dur)
+      osc.start(t + delay)
+      osc.stop(t + delay + dur + 0.05)
+    })
+  }
+
   return {
     playX: () => playTone({ frequency: 520, type: 'triangle', duration: 0.18, gainPeak: 0.4 }),
     playO: () => playTone({ frequency: 300, type: 'sine', duration: 0.22, gainPeak: 0.35 }),
@@ -112,6 +167,7 @@ function useAudio() {
     playDraw,
     startBgMusic,
     stopBgMusic,
+    playIntroMusic,
   }
 }
 
@@ -243,12 +299,43 @@ function Board({ squares, onPlay, xIsNext, players, audio }) {
   )
 }
 
+function Splash({ onDone, playIntroMusic }) {
+  const [phase, setPhase] = useState('idle')
+
+  function handleTap() {
+    if (phase !== 'idle') return
+    setPhase('in')
+    playIntroMusic()
+    setTimeout(() => setPhase('out'), 4200)
+    setTimeout(onDone, 5000)
+  }
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleTap)
+    return () => window.removeEventListener('keydown', handleTap)
+  }, [phase])
+
+  return (
+    <div className={`splash ${phase !== 'idle' ? `splash-${phase}` : ''}`} onClick={handleTap}>
+      <h1 className="splash-title">Tic-Tac-Toe</h1>
+      <p className="splash-dedication">
+        From Marcilio to his lovely daughters{' '}
+        <span className="splash-names">Ana</span> and <span className="splash-names">Marina</span>
+      </p>
+      {phase === 'idle' && <p className="splash-tap">Click or press any key to start</p>}
+    </div>
+  )
+}
+
 export default function Game() {
+  const [splash, setSplash] = useState(true)
   const [players, setPlayers] = useState(null)
   const [scores, setScores] = useState([0, 0])
   const [squares, setSquares] = useState(Array(9).fill(null))
   const [xIsNext, setXIsNext] = useState(true)
   const audio = useAudio()
+
+  if (splash) return <Splash onDone={() => setSplash(false)} playIntroMusic={audio.playIntroMusic} />
 
   function handleStart(p1, p2) {
     setPlayers([p1, p2])
