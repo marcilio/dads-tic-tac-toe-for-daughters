@@ -12,12 +12,16 @@ Made with love by Marcilio for his daughters **Ana** and **Marina**.
 
 - **Player setup** — enter your name (up to 16 chars) and pick an emoji avatar
 - **Avatar on the board** — pieces show each player's avatar instead of X/O
-- **vs Computer** — play against an AI with Easy (random) or Hard (unbeatable minimax) difficulty
-- **Scoreboard** — tracks wins across rounds; turns alternate who starts each game
-- **Tournament mode** — Best of 3 or Best of 5 series with a champion screen and confetti
+- **vs Computer** — Easy (random moves) or Hard (blocks your wins, takes its own — beatable with strategy)
+- **Practice mode** — open-ended rounds with no score limit; after each round a "Ready for a Tournament?" prompt appears
+- **Tournament mode** — Best of 5 series; first to 3 wins crowned champion with confetti; "Play Again" restarts another Best of 5
+- **Tournament history** — completed tournaments saved locally; last result shown as a hook on the setup screen, tap to expand full history
+- **Scoreboard** — tracks wins across rounds; turn order alternates each round
+- **Timed mode** — optional 5-second countdown per turn; auto random move fires on timeout
 - **Avatar reactions** — winner bounces, loser shakes, draw wiggles
-- **Audio** — distinct sounds for each player's move, win fanfare, draw tone, and ambient background music
-- **Splash screen** — animated intro with names swapping, intro jingle, and a 5-second countdown
+- **Voice cheers** — Web Speech API announces moves, wins, and draws
+- **Audio** — distinct tones per player, win fanfare, draw tone, ambient background music (all programmatic — no audio files)
+- **Splash screen** — animated intro with name scramble, swapping animation, and intro jingle
 
 ## Running Locally
 
@@ -86,3 +90,12 @@ A custom slash command that encodes the safe deploy procedure as a reusable inst
 ```
 
 Both the hook and the command live in `.claude/`, which is committed to the repo so any contributor (or future Claude session) picks them up automatically.
+
+### Skill — `/new-design-decision`
+
+**File:** `.claude/skills/new-design-decision/SKILL.md`  
+**Trigger:** automatically by Claude at the start of any implementation task
+
+Claude evaluates whether a feature, bug fix, or refactor involves a non-obvious design choice worth capturing. If yes, it creates an ADR-format file in `docs/decisions/` before or after coding and updates the index at `docs/decisions/README.md`.
+
+This keeps architectural reasoning retrievable without burdening the codebase with inline comments. See `docs/decisions/` for all recorded decisions.
