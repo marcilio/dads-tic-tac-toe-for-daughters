@@ -44,3 +44,22 @@ export function bestMove(squares, humanAvatar, cpuAvatar) {
   }
   return move
 }
+
+// See docs/decisions/011-hard-cpu-position-aware-blend.md
+export function hardMove(squares, humanAvatar, cpuAvatar) {
+  for (let i = 0; i < 9; i++) {
+    if (squares[i]) continue
+    squares[i] = cpuAvatar
+    const { winner } = calculateWinner(squares)
+    squares[i] = null
+    if (winner) return i
+  }
+  for (let i = 0; i < 9; i++) {
+    if (squares[i]) continue
+    squares[i] = humanAvatar
+    const { winner } = calculateWinner(squares)
+    squares[i] = null
+    if (winner) return i
+  }
+  return randomMove(squares)
+}

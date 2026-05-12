@@ -2,11 +2,28 @@ import { useState, useRef, useEffect } from 'react'
 import './App.css'
 import { useAudio } from './hooks/useAudio'
 import { useSpeech } from './hooks/useSpeech'
-import { calculateWinner, randomMove, bestMove } from './utils/gameLogic'
+import { saveToHistory } from './hooks/useHistory'
+import { calculateWinner, randomMove, hardMove } from './utils/gameLogic'
 import { Board } from './components/Board'
 import { Setup, GameTitle } from './components/Setup'
 import { Splash } from './components/Splash'
 import { TournamentWinner } from './components/TournamentWinner'
+
+function TournamentPrompt({ onYes, onNo }) {
+  return (
+    <div className="tournament-prompt-overlay">
+      <div className="tournament-prompt">
+        <div className="tournament-prompt-trophy">🏆</div>
+        <h2>Ready for a Tournament?</h2>
+        <p>Best of 5 — first to 3 wins</p>
+        <div className="game-buttons">
+          <button className="restart-btn" onClick={onYes}>Let's go!</button>
+          <button className="secondary-btn" onClick={onNo}>Not yet</button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function Game() {
   const [splash, setSplash] = useState(true)
@@ -23,6 +40,7 @@ export default function Game() {
   const [roundStarter, setRoundStarter] = useState(true)
   const [roundResult, setRoundResult] = useState(null)
   const [seriesWinner, setSeriesWinner] = useState(null)
+  const [showTournamentPrompt, setShowTournamentPrompt] = useState(false)
   const audio = useAudio()
   const speech = useSpeech()
 
@@ -34,7 +52,7 @@ export default function Game() {
       const next = squares.slice()
       const move = difficulty === 'easy'
         ? randomMove(next)
-        : bestMove(next, players[0].avatar, players[1].avatar)
+        : hardMove(next, players[0].avatar, players[1].avatar)
       next[move] = players[1].avatar
       const { winner } = calculateWinner(next)
       const isDraw = !winner && next.every(Boolean)
@@ -44,7 +62,17 @@ export default function Game() {
         const newScores = scores.map((v, i) => i === 1 ? v + 1 : v)
         setScores(newScores)
         setRoundResult({ winnerIdx: 1 })
-        if (tournament && newScores[1] >= tournament) setSeriesWinner(1)
+        if (tournament && newScores[1] >= tournament) {
+          setSeriesWinner(1)
+          saveToHistory({
+            date: new Date().toISOString(),
+            players: players.map(p => ({ name: p.name, avatar: p.avatar })),
+            scores: newScores,
+            winner: players[1].name,
+            mode,
+            rounds: newScores[0] + newScores[1],
+          })
+        }
       } else if (isDraw) {
         audio.playDraw()
         speech.announceDraw()
@@ -89,6 +117,13 @@ export default function Game() {
     autoMoveRef.current()
   }, [countdown])
 
+  // Show tournament prompt after practice round ends
+  useEffect(() => {
+    if (tournament !== null || roundResult === null || !players) return
+    const tid = setTimeout(() => setShowTournamentPrompt(true), 800)
+    return () => clearTimeout(tid)
+  }, [roundResult])
+
   if (splash) return <Splash onDone={() => setSplash(false)} playIntroMusic={audio.playIntroMusic} />
 
   const copyright = <p className="game-copyright">© {new Date().getFullYear()} Made with ♥ by <a href="https://www.linkedin.com/in/marcilio/" target="_blank" rel="noreferrer" className="copyright-link">Marcilio</a> for Ana &amp; Marina</p>
@@ -103,6 +138,7 @@ export default function Game() {
     setRoundStarter(true)
     setRoundResult(null)
     setSeriesWinner(null)
+    setShowTournamentPrompt(false)
     audio.startBgMusic()
   }
 
@@ -114,7 +150,17 @@ export default function Game() {
         const newScores = scores.map((v, i) => i === idx ? v + 1 : v)
         setScores(newScores)
         setRoundResult({ winnerIdx: idx })
-        if (tournament && newScores[idx] >= tournament) setSeriesWinner(idx)
+        if (tournament && newScores[idx] >= tournament) {
+          setSeriesWinner(idx)
+          saveToHistory({
+            date: new Date().toISOString(),
+            players: players.map(p => ({ name: p.name, avatar: p.avatar })),
+            scores: newScores,
+            winner: players[idx].name,
+            mode,
+            rounds: newScores[0] + newScores[1],
+          })
+        }
       }
     } else if (next.every(Boolean)) {
       setRoundResult({ winnerIdx: null })
@@ -129,6 +175,17 @@ export default function Game() {
     setSquares(Array(9).fill(null))
     setXIsNext(nextStarter)
     setRoundResult(null)
+    setShowTournamentPrompt(false)
+  }
+
+  function startTournament() {
+    setTournament(3)
+    setScores([0, 0])
+    setSquares(Array(9).fill(null))
+    setXIsNext(true)
+    setRoundStarter(true)
+    setRoundResult(null)
+    setShowTournamentPrompt(false)
   }
 
   function changePlayers() {
@@ -140,6 +197,7 @@ export default function Game() {
     setRoundStarter(true)
     setRoundResult(null)
     setSeriesWinner(null)
+    setShowTournamentPrompt(false)
   }
 
   if (!players) return <><Setup onStart={handleStart} />{copyright}</>
@@ -164,7 +222,7 @@ export default function Game() {
     </>
   )
 
-  const tournamentLabel = tournament ? `Best of ${tournament === 2 ? 3 : 5} — first to ${tournament}` : null
+  const tournamentLabel = tournament ? `Best of 5 — first to ${tournament}` : null
 
   return (
     <>
@@ -192,6 +250,7 @@ export default function Game() {
         <button className="secondary-btn" onClick={changePlayers}>Change Players</button>
       </div>
     </div>
+    {showTournamentPrompt && <TournamentPrompt onYes={startTournament} onNo={() => setShowTournamentPrompt(false)} />}
     {copyright}
     </>
   )

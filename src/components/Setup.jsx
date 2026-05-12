@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { AVATARS, NAME_RE } from '../constants'
+import { loadHistory } from '../hooks/useHistory'
 
 const CPU_PLAYER = { name: 'Computer', avatar: '🤖' }
 
@@ -50,6 +51,37 @@ export function GameTitle() {
   )
 }
 
+function formatHistoryDate(isoString) {
+  return new Date(isoString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function formatHistoryEntry(entry) {
+  const wi = entry.players.findIndex(p => p.name === entry.winner)
+  const li = 1 - wi
+  return `🏆 ${entry.players[wi].avatar} ${entry.winner} beat ${entry.players[li].avatar} ${entry.players[li].name} ${entry.scores[wi]}-${entry.scores[li]} · ${formatHistoryDate(entry.date)}`
+}
+
+function HistoryPanel({ history, onClose }) {
+  return (
+    <>
+      <div className="history-backdrop" onClick={onClose} />
+      <div className="history-panel">
+        <div className="history-panel-header">
+          <span className="history-panel-title">Tournament History</span>
+          <button className="history-close" onClick={onClose}>✕</button>
+        </div>
+        {history.length === 0 ? (
+          <p className="history-empty">No tournaments yet — play one to start your history</p>
+        ) : (
+          history.map((entry, i) => (
+            <div key={i} className="history-entry">{formatHistoryEntry(entry)}</div>
+          ))
+        )}
+      </div>
+    </>
+  )
+}
+
 export function Setup({ onStart }) {
   const [mode, setMode] = useState('2p')
   const [difficulty, setDifficulty] = useState('hard')
@@ -57,6 +89,10 @@ export function Setup({ onStart }) {
   const [timed, setTimed] = useState(false)
   const [p1, setP1] = useState({ name: 'Ana', avatar: '🐶' })
   const [p2, setP2] = useState({ name: 'Marina', avatar: '🐱' })
+  const [showHistory, setShowHistory] = useState(false)
+
+  const history = loadHistory()
+  const lastEntry = history[0]
 
   const p1Valid = p1.name.trim().length > 0 && NAME_RE.test(p1.name)
   const p2Valid = p2.name.trim().length > 0 && NAME_RE.test(p2.name)
@@ -92,9 +128,8 @@ export function Setup({ onStart }) {
       <div className="tournament-toggle">
         <span className="tournament-label">Mode</span>
         <div className="mode-toggle">
-          <button className={`mode-btn ${tournament === null ? 'mode-btn-active' : ''}`} onClick={() => setTournament(null)}>Casual</button>
-          <button className={`mode-btn ${tournament === 2 ? 'mode-btn-active' : ''}`} onClick={() => setTournament(2)}>Best of 3</button>
-          <button className={`mode-btn ${tournament === 3 ? 'mode-btn-active' : ''}`} onClick={() => setTournament(3)}>Best of 5</button>
+          <button className={`mode-btn ${tournament === null ? 'mode-btn-active' : ''}`} onClick={() => setTournament(null)}>Practice</button>
+          <button className={`mode-btn ${tournament === 3 ? 'mode-btn-active' : ''}`} onClick={() => setTournament(3)}>Tournament</button>
         </div>
       </div>
       <div className="tournament-toggle">
@@ -107,6 +142,12 @@ export function Setup({ onStart }) {
       <button className="restart-btn" disabled={!canStart} onClick={handleStart}>
         Start Game
       </button>
+      {lastEntry && (
+        <button className="history-hook" onClick={() => setShowHistory(true)}>
+          {formatHistoryEntry(lastEntry)}
+        </button>
+      )}
+      {showHistory && <HistoryPanel history={history} onClose={() => setShowHistory(false)} />}
     </div>
   )
 }
