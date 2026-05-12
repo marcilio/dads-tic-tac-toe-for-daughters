@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /home/marciliomendonca/tic-tac-toe/.claude/hooks/post-edit-lint.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
