@@ -19,18 +19,31 @@ vercel --prod    # deploy to production
 - Deployed on Vercel
 
 ## Key Files
-- `src/App.jsx` — entire app: hooks, components, game logic
+- `src/App.jsx` — Game root component, owns all state
+- `src/constants.js` — AVATARS list, NAME_RE validation regex
+- `src/hooks/useAudio.js` — Web Audio API: move tones, win/draw sounds, background music
+- `src/hooks/useSpeech.js` — Web Speech API: voice cheers on moves/wins/draws
+- `src/utils/gameLogic.js` — calculateWinner, randomMove, bestMove (minimax)
+- `src/components/Board.jsx` — game grid + Square, countdown display
+- `src/components/Setup.jsx` — player name/avatar/mode selection, GameTitle
+- `src/components/Splash.jsx` — animated intro, SwapNames, useScramble
+- `src/components/TournamentWinner.jsx` — champion screen, Confetti
 - `src/App.css` — all styles
 - `src/index.css` — minimal reset + root flex layout
 
 ## Architecture
-Single-file React app. No external state library. Key components:
+React app with no external state library. Key components:
 - `Game` — root component, owns all state
 - `Board` — renders the grid, handles click and countdown display
 - `Setup` — player name/avatar/mode selection screen
 - `Splash` — animated intro screen with scramble animation
 - `SwapNames` — Marina/Ana scramble + split + swap animation
 - `TournamentWinner` — series champion screen with confetti
+
+## Design Decisions
+Non-obvious architectural choices are recorded in `docs/decisions/`.
+See `docs/decisions/README.md` for the index.
+Use `/new-design-decision` to create a new record.
 
 ## Conventions
 - No comments unless the WHY is non-obvious
@@ -52,7 +65,6 @@ Single-file React app. No external state library. Key components:
 - Splash screen with intro jingle and name scramble animation
 
 ## Don'ts
-- Don't split into multiple files — keep everything in App.jsx / App.css
 - Don't add npm dependencies without asking
 - Don't modify index.html
 - Don't use classes or Redux
